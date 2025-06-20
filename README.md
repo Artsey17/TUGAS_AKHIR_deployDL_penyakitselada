@@ -45,12 +45,12 @@ Pembahasan :
  3. F1 Confidence Score
  4. Speed Inference
  5. Size model
- 5. Box loss, val loss
  6. Precision
  7. Recall
- 8. FPS pada Raspberry
- 9. Confusion Matrix
- 10. Metrics Precision
+ 8. Confusion Matrix
+ 9. Metrics Precision
+ 10. Val Loss dan Box loss
+     
 > Learning rate yang digunakna Di Optimizer SGD adalah : (0.02, 0.01, 0.005, 0.002, 0.001)
 > Learning rate yang digunakna Di Optimizer AdamW adalah : (0.002, 0.001, 0.0005, 0.0002, 0.0001)
 > Model yang paling baik Akan diimplemnentasikan di raspberry
