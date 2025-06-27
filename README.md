@@ -1,20 +1,19 @@
-# TUGAS_AKHIR_deployDL_penyakitselada
  # TUGAS AKHIR
-"Studi Komparatif Kinerja Optimizer AdamW dan SGD untuk Peningkatan Akurasi dan Kecepatan Deteksi Penyakit Daun Selada Menggunakan Model YOLOv11n Berbasis Raspberry Pi"
+"PENERAPAN DEEP LEARNING YOLO BERDASARKAN CITRA DIGITAL UNTUK MENDETEKSI PENYAKIT DAUN SELADA:  PERFORMA MODEL YOLOV11N DAN YOLOV12N BERBASIS RASPBERRY PI"
 
 TUJUAN :
 
-1. Menentukan arsitektur model dan konfigurasi pembagian data yang paling optimal sebagai baseline untuk deteksi penyakit daun selada.
-2. Melakukan studi komparatif mendalam untuk menemukan konfigurasi optimizer dan learning rate yang paling unggul (AdamW vs. SGD) guna memaksimalkan performa model baseline.
-3. Menghasilkan sebuah model final yang tervalidasi memiliki akurasi dan kecepatan yang mumpuni untuk kebutuhan implementasi pada platform Raspberry Pi.
+1.   Model manakah yang dapat paling efektif digunakan pada Penelitian Penyakit daun selada.
+2.   Pemanfaatan Deep learning yaitu dengan arsitektur YOLO untuk analaisis prediksi bounding box penyakit daun selada.
+3.  Penggunaan Optimizer yang memiliki performa terbaik pada dataset Penyakit tanaman selada.
 
 METODE :
-Menggunakan arsitektur model YOLOv11 dan YOLOv12 yang akan di fine tuning dengan 2 optimizer : SGD dan AdamW pada dataset sebanyak 50 epochs dan digunakan di embedded sistem pada raspberry pi 3.
+Menggunakan arsitektur model YOLOv11 dan YOLOv12 yang akan di fine tuning pada dataset penyakit daun selada sebesar 50 epochs dan melakukan continue learning sebanyak 50 epochs dan digunakan di embedded sistem pada raspberry pi 3.
 
 Dataset :
 1. Dataset Diambil dari sumber Kaggle, Data Real Lapangan, dan Roboflow. yang digabung menjad custom dataset.
 2. Dataset split dataset menjadi 3 bagian : Training, Validation, dan Testing
-  > Dibagi menjadi 2 yaitu :
+  > Dibagi menjadi 3 yaitu :
   1. 80/10/10 = berisi 18102 gambar
   2. 70/20/10 = berisi 15906 gambar
 3. Dataset memiliki 6 kelas yaitu :
@@ -26,18 +25,13 @@ Dataset :
   6. Septoria_Blight_on_lettuce = penyakit yang disebabkan oleh septoria sejenis jamur (hitam dan menguning bercak)
 
 Pembahasan :
-> Data akan dilakukan 2 kali pelatihan pada awalnya akan dilatih dengan model YOLOv11/v12 yang telah ditraining di COCO kemudian model dilakukan training dengan yang bervariasi hingga mendapatkan model setelah itu di re training atau continue learning, dan dilakukan analisis model mana yang terbaik.
-> dari model yang diambil YOLO yang terbaik seimbang antara kecepatan dan akurasinya akan dipilih berdasarkan hasil kinerja parameter dari model
-> model yang terbaik akan digunakan untuk diujicoba kembali dengan optimizer SGD dan AdamW dengan eksplorasi eksperimen dengan learning Rate
-> Model yang terbaik akan dipakai pada Raspberry Pi 3 untuk menganalisis penyakit tanaman selada.
+>Data akan dilakukan 2 kali pelatihan pada awalnya akan dilatih dengan model YOLOv11/v12 yang telah ditraining di COCO kemudian model dilakukan training dengan yang bervariasi hingga mendapatkan model g, dan dilakukan analisis model mana yang terbaik.
 
-> YOLOv11nano :
-  3. 80/10/10 + 80/10/10 =
-  4. 70/20/10 + 70/20/10 =
+> a. YOLOv11nano dan YOLOv12n 1 kali epochs (50)  dataset 18 (70.20.10):
 
-> YOLOv12nano :
-  3. 80/10/10 + 80/10/10 =
-  4. 70/20/10 + 70/20/10 =
+
+> b. YOLOv11nano dan YOLOv12n 1 kali epochs (50)  dataset 12 (80.10.10):
+
 
 > Hasil dari model tersebut akan dilakukan Analisis lebih lanjut yaitu dengan parameter
  1. mAP 50
@@ -48,12 +42,16 @@ Pembahasan :
  6. Precision
  7. Recall
  8. Confusion Matrix
- 9. Metrics Precision
- 10. Val Loss dan Box loss
-     
-> Learning rate yang digunakna Di Optimizer SGD adalah : (0.02, 0.01, 0.005, 0.002, 0.001)
-> Learning rate yang digunakna Di Optimizer AdamW adalah : (0.002, 0.001, 0.0005, 0.0002, 0.0001)
-> Model yang paling baik Akan diimplemnentasikan di raspberry
+ 9. Loss
 
+Dari perbandingan hasil dari kedua model YOLO ini diambil dengan keseimbangan kecepatan serta akurasi yang mumpuni didapatkan YOLov11n secara keseluruhan mumpuni karena seimbang antara akurasi dan kecepatan. setelah didapatkan model yang sesuai dari eksperimen maka akan dilakukan analisis lanjutan.
+langkah lanjutan ini adalah dari hasil model terbaik yaitu Model YOLOv11n ini akan dilakukan pergantian Optimizer 5x  Dataset 80/10/10 yang akan diganti dengna optimizer AdamW dan juga SGD. sehingga didapatkan.
 
+Data hasil Optimizer dengan dataset 80/10/10
+Optimizer yang digunakan adalah SGD dan AdamW yang dibagi menjadi learning rate
+>  SGD : [0.02, 0.01, 0.005, 0.002, 0.001]
+AdamW : [0.002, 0.001, 0.0005, 0.0002, 0.0001]
 
+data hasil optimizer : YOLOv11n dengan Optimizer SGD dan learning rate 0.005.
+Model yang terbaik akan dipakai pada Raspberry Pi 3 untuk menganalisis penyakit tanaman selada.
+kemudian saya buat alat dengan tampilan Waveshare lcd 7 inci yang diintegrasikan dengan rapsberry pi 3 dan menggunakna GUI tkinter untuk membuat tampilan gui, yang isinya terdapat upload gambar dan upload video serta video real time dapat menggunakan raspi cam atau webcam.
