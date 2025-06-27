@@ -1,0 +1,291 @@
+#raspberry Pi
+import tkinter as tk
+from tkinter import filedialog, ttk, messagebox
+import cv2
+import numpy as np
+from ultralytics import YOLO
+import time
+import os
+import sys
+try:
+    from PIL import Image, ImageTk
+except ImportError:
+    print("WARNING: Pillow not installed. Install with: pip3 install pillow")
+    ImageTk = None
+try:
+    from picamera2 import Picamera2
+except ImportError:
+    print("WARNING: picamera2 not installed. PiCamera support disabled.")
+    Picamera2 = None
+
+class YOLOApp:
+    def __init__(self, root=None):
+        self.root = root
+        self.is_processing = False
+        self.model_path = "SGD(0.005).pt"  # Path model di Raspberry Pi
+        self.resolution = "640x480"  # Default resolution
+        self.camera_index = 0  # Default indeks kamera USB
+        self.use_picamera = False  # Gunakan PiCamera jika True
+
+        # Inisialisasi model YOLO
+        if not os.path.exists(self.model_path):
+            print(f"ERROR: Model tidak ditemukan di: {self.model_path}")
+            if self.root:
+                messagebox.showerror("Error", f"Model tidak ditemukan di: {self.model_path}")
+            sys.exit(1)
+        try:
+            self.model = YOLO(self.model_path, task="detect")
+            self.labels = self.model.names
+        except Exception as e:
+            print(f"ERROR: Gagal memuat model: {str(e)}")
+            if self.root:
+                messagebox.showerror("Error", f"Gagal memuat model: {str(e)}")
+            sys.exit(1)
+        self.bbox_colors = [(164,120,87), (68,55,228), (93,97,209), (96,202,231), (88,159,106)]
+
+        if root:
+            self.setup_gui()
+
+    def get_camera_index(self):
+        for i in range(5):
+            cap = cv2.VideoCapture(i)
+            if cap.isOpened():
+                print(f"Kamera USB ditemukan di indeks {i}")
+                cap.release()
+                return i
+        print("WARNING: Tidak ada kamera USB ditemukan. Menggunakan indeks 0.")
+        return 0
+
+    def setup_gui(self):
+        self.root.title("YOLO Object Detection")
+        self.root.geometry("1024x600")  # Ukuran jendela 1024x600
+
+        # Frame judul dengan gambar dan pembatas
+        title_frame = tk.Frame(self.root)
+        title_frame.pack(fill="x", padx=10, pady=10)
+        
+        # Gambar kecil dan pembatas
+        if ImageTk:
+            try:
+                logo_path = "/home/pi/project/Logo_UGM.png"  # Path logo di Raspberry Pi
+                image = Image.open(logo_path).resize((50, 50))
+                self.logo = ImageTk.PhotoImage(image)
+                tk.Label(title_frame, image=self.logo).pack(side="left", padx=5)
+                tk.Frame(title_frame, width=5, bg="black").pack(side="left", padx=5)  # Pembatas tebal
+            except Exception as e:
+                messagebox.showwarning("Peringatan", f"Gagal memuat logo: {str(e)}")
+
+        # Teks judul dan nama (rata tengah, font besar)
+        text_frame = tk.Frame(title_frame)
+        text_frame.pack(side="left", fill="x", expand=True)
+        tk.Label(text_frame, text="PENERAPAN DEEP LEARNING YOLO BERDASARKAN CITRA DIGITAL UNTUK MENDETEKSI PENYAKIT DAUN SELADA: PERFORMA MODEL YOLOV11N DAN YOLOV12N BERBASIS RASPBERRY PI", font=("Arial", 14, "bold"), wraplength=950, justify="center").pack(pady=5)
+        tk.Label(text_frame, text="Theophylus Yestra Pratama, 21/479277/SV/19471", font=("Arial", 12), justify="center").pack(pady=5)
+        tk.Label(text_frame, text="Deteksi Penyakit Tanaman Selada", font=("Arial", 12, "italic"), justify="center").pack(pady=5)
+        tk.Frame(title_frame, height=2, bg="black").pack(fill="x", pady=5)
+
+        # Tombol dan menu
+        tk.Button(self.root, text="Upload Gambar", command=self.upload_image, font=("Arial", 12), bg="#4CAF50", fg="white", padx=10, pady=5).pack(pady=10)
+        tk.Button(self.root, text="Upload Video", command=self.upload_video, font=("Arial", 12), bg="#2196F3", fg="white", padx=10, pady=5).pack(pady=10)
+        tk.Button(self.root, text="Real-Time Streaming", command=self.start_streaming, font=("Arial", 12), bg="#FFC107", fg="black", padx=10, pady=5).pack(pady=10)
+        
+        tk.Label(self.root, text="Resolusi:", font=("Arial", 10)).pack(pady=5)
+        self.resolution_var = tk.StringVar(value=self.resolution)
+        resolutions = ["640x480", "800x600", "1024x600", "1280x720"]
+        ttk.Combobox(self.root, textvariable=self.resolution_var, values=resolutions, state="readonly", font=("Arial", 10)).pack(pady=5)
+        
+        tk.Label(self.root, text="Kamera:", font=("Arial", 10)).pack(pady=5)
+        self.camera_var = tk.StringVar(value=str(self.camera_index))
+        cameras = ["0", "1", "2", "PiCamera"] if Picamera2 else ["0", "1", "2"]
+        ttk.Combobox(self.root, textvariable=self.camera_var, values=cameras, state="readonly", font=("Arial", 10)).pack(pady=5)
+        
+        tk.Button(self.root, text="Keluar", command=self.quit_app, font=("Arial", 12), bg="#F44336", fg="white", padx=10, pady=5).pack(pady=10)
+
+    def upload_image(self):
+        file = filedialog.askopenfilename(filetypes=[("Images", "*.jpg *.jpeg *.png *.bmp")])
+        if file:
+            self.resolution = self.resolution_var.get()
+            self.process_source(file, source_type="image")
+
+    def upload_video(self):
+        file = filedialog.askopenfilename(filetypes=[("Videos", "*.mp4 *.avi *.mov *.mkv *.wmv")])
+        if file:
+            self.resolution = self.resolution_var.get()
+            self.process_source(file, source_type="video")
+
+    def start_streaming(self):
+        self.resolution = self.resolution_var.get()
+        camera = self.camera_var.get()
+        if camera == "PiCamera" and Picamera2:
+            self.use_picamera = True
+            self.process_source(None, source_type="picamera")
+        else:
+            self.use_picamera = False
+            self.camera_index = int(camera)
+            self.process_source(self.camera_index, source_type="usb")
+
+    def process_source(self, source, source_type):
+        self.is_processing = True
+        resW, resH = map(int, self.resolution.split("x"))
+        min_thresh = 0.5
+
+        # Inisialisasi sumber
+        if source_type == "image":
+            frame = cv2.imread(source)
+            if frame is None:
+                print("ERROR: Tidak dapat memuat gambar.")
+                if self.root:
+                    messagebox.showerror("Error", "Tidak dapat memuat gambar.")
+                self.is_processing = False
+                return
+            frame = cv2.resize(frame, (resW, resH))
+        elif source_type == "picamera" and Picamera2:
+            cap = Picamera2()
+            cap.configure(cap.create_video_configuration(main={"format": "RGB888", "size": (resW, resH)}))
+            try:
+                cap.start()
+            except Exception as e:
+                print(f"ERROR: Tidak dapat memulai PiCamera: {str(e)}")
+                if self.root:
+                    messagebox.showerror("Error", f"Tidak dapat memulai PiCamera: {str(e)}")
+                self.is_processing = False
+                return
+        else:  # video atau usb
+            cap = cv2.VideoCapture(source)
+            if not cap.isOpened():
+                print(f"ERROR: Tidak dapat membuka sumber video/kamera (indeks {source}).")
+                if self.root:
+                    messagebox.showerror("Error", f"Tidak dapat membuka kamera indeks {source}.")
+                self.is_processing = False
+                return
+            cap.set(3, resW)
+            cap.set(4, resH)
+
+        frame_rate_buffer = []
+        avg_frame_rate = 0
+
+        while self.is_processing:
+            t_start = time.perf_counter()
+
+            # Baca frame
+            if source_type == "image":
+                pass  # Frame sudah di-load
+            elif source_type == "picamera" and Picamera2:
+                frame = cap.capture_array()
+                if frame is None:
+                    print("ERROR: Tidak dapat membaca frame dari PiCamera.")
+                    break
+                frame = cv2.resize(frame, (resW, resH))
+            else:  # video atau usb
+                ret, frame = cap.read()
+                if not ret:
+                    print("Sumber video/kamera selesai atau terputus.")
+                    if self.root:
+                        messagebox.showinfo("Info", "Sumber video/kamera selesai atau terputus.")
+                    break
+                frame = cv2.resize(frame, (resW, resH))
+            
+            # Inferensi YOLO
+            try:
+                results = self.model(frame, verbose=False)
+            except Exception as e:
+                print(f"ERROR: Gagal menjalankan inferensi: {str(e)}")
+                if self.root:
+                    messagebox.showerror("Error", f"Gagal menjalankan inferensi: {str(e)}")
+                break
+            object_count = 0
+
+            # Gambar bounding box
+            for det in results[0].boxes:
+                xyxy = det.xyxy.cpu().numpy().squeeze().astype(int)
+                conf = det.conf.item()
+                if conf > min_thresh:
+                    xmin, ymin, xmax, ymax = xyxy
+                    classidx = int(det.cls.item())
+                    color = self.bbox_colors[classidx % 5]
+                    cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), color, 2)
+                    label = f"{self.labels[classidx]}: {int(conf*100)}%"
+                    labelSize, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+                    cv2.rectangle(frame, (xmin, ymin-20), (xmin+labelSize[0], ymin), color, -1)
+                    cv2.putText(frame, label, (xmin, ymin-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
+                    object_count += 1
+
+            # Tampilkan FPS, jumlah objek, dan teks real-time
+            if source_type != "image":
+                cv2.putText(frame, f"FPS: {avg_frame_rate:.2f}", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,255), 2)
+                cv2.putText(frame, f"Objek: {object_count}", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,255), 2)
+               
+            # Tampilkan frame
+            cv2.imshow("YOLO Detection", frame)
+
+            # Tangani input keyboard
+            key = cv2.waitKey(1 if source_type != "image" else 0)
+            if key == ord("q") or key == ord("Q"):
+                self.is_processing = False
+                break
+
+            # Hitung FPS
+            if source_type != "image":
+                frame_rate_buffer.append(1 / (time.perf_counter() - t_start))
+                if len(frame_rate_buffer) > 50:
+                    frame_rate_buffer.pop(0)
+                avg_frame_rate = np.mean(frame_rate_buffer)
+
+        # Bersihkan
+        if source_type == "picamera" and Picamera2:
+            cap.stop()
+        elif source_type != "image":
+            cap.release()
+        cv2.destroyAllWindows()
+        self.is_processing = False
+
+    def quit_app(self):
+        if not self.is_processing:
+            self.root.quit()
+
+def command_line_mode():
+    app = YOLOApp(root=None)
+    while True:
+        print("\nYOLO Object Detection")
+        print("1. Upload Gambar")
+        print("2. Upload Video")
+        print("3. Real-Time Video Streaming")
+        print("4. Keluar")
+        choice = input("Pilih opsi (1-4): ")
+        if choice == "1":
+            file = input("Masukkan path gambar: ")
+            if os.path.exists(file):
+                app.resolution = "640x480"
+                app.process_source(file, source_type="image")
+            else:
+                print("ERROR: File tidak ditemukan.")
+        elif choice == "2":
+            file = input("Masukkan path video: ")
+            if os.path.exists(file):
+                app.resolution = "640x480"
+                app.process_source(file, source_type="video")
+            else:
+                print("ERROR: File tidak ditemukan.")
+        elif choice == "3":
+            if Picamera2:
+                use_picamera = input("Gunakan PiCamera? (y/n, default n): ").lower() == "y"
+                if use_picamera:
+                    app.resolution = "640x480"
+                    app.process_source(None, source_type="picamera")
+                    continue
+            index = input("Masukkan indeks kamera USB (default 0): ") or str(app.get_camera_index())
+            app.resolution = "640x480"
+            app.process_source(int(index), source_type="usb")
+        elif choice == "4":
+            break
+        else:
+            print("Opsi tidak valid.")
+
+if __name__ == "__main__":
+    try:
+        root = tk.Tk()
+        app = YOLOApp(root)
+        root.mainloop()
+    except tk.TclError as e:
+        print(f"ERROR: Gagal memulai GUI: {str(e)}")
+        print("Beralih ke mode command-line...")
+        command_line_mode()
