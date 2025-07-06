@@ -8,7 +8,7 @@ TUJUAN :
 3.  Penggunaan Optimizer yang memiliki performa terbaik pada dataset Penyakit tanaman selada.
 
 METODE :
-Menggunakan arsitektur model YOLOv11 dan YOLOv12 yang akan di fine tuning pada dataset penyakit daun selada sebesar 50 epochs dan melakukan continue learning sebanyak 50 epochs dan digunakan di embedded sistem pada raspberry pi 3.
+Arsitektur model YOLOv11 dan YOLOv12 dibandingkan hasil terbaik dilakukan fine tuning dengan Optimizer SGD dan AdamW pada dataset penyakit selada sebesar 50 epochs, Hasil optimizer terbaik dideploy Pada Raspberry Pi 3
 
 Dataset :
 1. Dataset Diambil dari sumber Kaggle, Data Real Lapangan, dan Roboflow. yang digabung menjad custom dataset.
@@ -52,6 +52,6 @@ Optimizer yang digunakan adalah SGD dan AdamW yang dibagi menjadi learning rate
 >  SGD : [0.02, 0.01, 0.005, 0.002, 0.001]
 AdamW : [0.002, 0.001, 0.0005, 0.0002, 0.0001]
 
-data hasil optimizer : YOLOv11n dengan Optimizer SGD dan learning rate 0.005.
+data hasil optimizer : YOLOv11n dengan Optimizer SGD pada_ learning rate_ 0.005.
 Model yang terbaik akan dipakai pada Raspberry Pi 3 untuk menganalisis penyakit tanaman selada.
-kemudian saya buat alat dengan tampilan Waveshare lcd 7 inci yang diintegrasikan dengan rapsberry pi 3 dan menggunakna GUI tkinter untuk membuat tampilan gui, yang isinya terdapat upload gambar dan upload video serta video real time dapat menggunakan raspi cam atau webcam.
+kemudian saya buat alat dengan tampilan Waveshare lcd 7 inci yang diintegrasikan dengan rapsberry pi 3 dan menggunakna GUI tkinter untuk membuat tampilan gui, pada menu terdapat upload gambar dan upload video serta video real time dapat menggunakan raspi cam atau webcam.
